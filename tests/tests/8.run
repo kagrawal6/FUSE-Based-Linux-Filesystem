@@ -1,0 +1,1 @@
+./wfs-check-metadata.py --mode mkfs --inodes 1024 --blocks 1024 --disks /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2

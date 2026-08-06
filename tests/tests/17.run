@@ -1,0 +1,171 @@
+python3 -c 'import os
+from stat import *
+
+try:
+    os.chdir("mnt")
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file20", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file20").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file19", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file19").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file18", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file18").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file17", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file17").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file16", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file16").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file15", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file15").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file14", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file14").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file13", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file13").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file12", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file12").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file11", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file11").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file10", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file10").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file9", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file9").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file8", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file8").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file7", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file7").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file6", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file6").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file5", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file5").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file4", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file4").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file3", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file3").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file2", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file2").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file1", "wb") as f:
+    f.write(b'\''a'\'' * 200)
+
+try:
+    S_ISREG(os.stat("file1").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+print("Correct")' \
+ && fusermount -u mnt && ./wfs-check-metadata.py --mode raid1 --blocks 22 --altblocks 22 --dirs 1 --files 20 --disks /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2

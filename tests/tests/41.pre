@@ -1,0 +1,1 @@
+mkdir -p mnt; mkdir -p /tmp/$(whoami) && truncate -s 1M /tmp/$(whoami)/test-disk1; truncate -s 1M /tmp/$(whoami)/test-disk2 && ../solution/mkfs -r 1 -d /tmp/$(whoami)/test-disk1 -d /tmp/$(whoami)/test-disk2 -i 32 -b 200 && ../solution/wfs /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2 -s mnt

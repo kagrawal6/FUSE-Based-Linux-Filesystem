@@ -1,0 +1,11 @@
+To run the tests:
+- `make` your code in the solution directory
+- run ./run-tests.sh
+
+Tests 1-9 are for mkfs only.
+
+To build the tests using `generate-test-spec.el`
+- From outside emacs: `emacs --script generate-test-spec.el`
+- From inside emacs:
+  - Evaluate the entire file: C-c C-e
+  - Evaluate the last s-expression to build tests: C-x C-e with cursor at end of file

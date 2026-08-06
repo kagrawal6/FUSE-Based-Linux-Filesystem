@@ -1,0 +1,19 @@
+python3 -c 'import os
+from stat import *
+
+try:
+    os.chdir("mnt")
+except Exception as e:
+    print(e)
+    exit(1)
+with open("file1", "wb") as f:
+    f.write(b'\''a'\'' * 8192)
+
+try:
+    S_ISREG(os.stat("file1").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+print("Correct")' \
+ && rm mnt/file1 && fusermount -u mnt && ./wfs-check-metadata.py --mode raid1 --blocks 1 --altblocks 0 --dirs 1 --files 0 --disks /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2

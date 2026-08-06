@@ -1,0 +1,1 @@
+fusermount -uq mnt; rm -f /tmp/$(whoami)/test-disk*

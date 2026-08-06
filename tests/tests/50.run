@@ -1,0 +1,347 @@
+python3 -c 'import os
+from stat import *
+
+try:
+    os.chdir("mnt")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file28")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file28").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file27")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file27").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file26")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file26").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file25")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file25").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file24")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file24").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file23")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file23").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file22")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file22").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file21")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file21").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file20")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file20").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file19")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file19").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file18")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file18").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file17")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file17").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file16")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file16").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file15")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file15").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file14")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file14").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file13")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file13").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file12")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file12").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file11")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file11").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file10")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file10").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file9")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file9").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file8")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file8").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file7")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file7").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file6")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file6").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file5")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file5").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file4")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file4").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file3")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file3").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file2")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file2").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mknod("file1")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISREG(os.stat("file1").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+print("Correct")' \
+ && ./readdir-check.py 28 && fusermount -u mnt && ./wfs-check-metadata.py --mode raid0 --blocks 2 --altblocks 2 --dirs 1 --files 28 --disks /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2 /tmp/$(whoami)/test-disk3

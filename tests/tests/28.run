@@ -1,0 +1,127 @@
+python3 -c 'import os
+from stat import *
+
+try:
+    os.chdir("mnt")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mkdir("d1")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISDIR(os.stat("d1").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mkdir("d1/d2")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISDIR(os.stat("d1/d2").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mkdir("d1/d2/d3")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISDIR(os.stat("d1/d2/d3").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mkdir("d1/d2/d3/d4")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISDIR(os.stat("d1/d2/d3/d4").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mkdir("d1/d2/d3/d4/d5")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISDIR(os.stat("d1/d2/d3/d4/d5").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mkdir("d1/d2/d3/d4/d5/d6")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISDIR(os.stat("d1/d2/d3/d4/d5/d6").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mkdir("d1/d2/d3/d4/d5/d6/d7")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISDIR(os.stat("d1/d2/d3/d4/d5/d6/d7").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mkdir("d1/d2/d3/d4/d5/d6/d7/d8")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISDIR(os.stat("d1/d2/d3/d4/d5/d6/d7/d8").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    os.mkdir("d1/d2/d3/d4/d5/d6/d7/d8/d9")
+except Exception as e:
+    print(e)
+    exit(1)
+
+try:
+    S_ISDIR(os.stat("d1/d2/d3/d4/d5/d6/d7/d8/d9").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+with open("d1/d2/d3/d4/d5/d6/d7/d8/d9/file0", "wb") as f:
+    f.write(b'\''a'\'' * 1024)
+
+try:
+    S_ISREG(os.stat("d1/d2/d3/d4/d5/d6/d7/d8/d9/file0").st_mode)
+except Exception as e:
+    print(e)
+    exit(1)
+
+print("Correct")' \
+ && fusermount -u mnt && ./wfs-check-metadata.py --mode raid0 --blocks 12 --altblocks 12 --dirs 10 --files 1 --disks /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2 /tmp/$(whoami)/test-disk3

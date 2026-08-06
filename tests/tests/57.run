@@ -1,0 +1,11 @@
+python3 -c 'import os
+from stat import *
+
+try:
+    os.chdir("mnt")
+except Exception as e:
+    print(e)
+    exit(1)
+
+print("Correct")' \
+ && ./read-write.py 1 10; cat mnt/file1 > file1.test; fusermount -u mnt; ./corrupt-disk.py --disks /tmp/$(whoami)/test-disk1; ../solution/wfs /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2 /tmp/$(whoami)/test-disk3 -s mnt; diff mnt/file1 file1.test && fusermount -u mnt && ./wfs-check-metadata.py --mode raid1v --blocks 3 --altblocks 3 --dirs 1 --files 1 --disks /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2 /tmp/$(whoami)/test-disk3
