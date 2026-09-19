@@ -2,7 +2,7 @@
 
 A user-space, block-based filesystem built with FUSE. It stores data on multiple disk image files and supports **RAID 0** (striping), **RAID 1** (mirroring), and **RAID 1v** (verified mirroring). The on-disk layout is similar to classic systems like FFS/ext2: superblock, bitmaps, inodes, and data blocks.
 
-For a deep dive into design, concepts, and internals, see [project description.md](project%20description.md).
+For a deep dive into design, concepts, internals, **screenshots**, and code snippets, see [project description.md](project%20description.md).
 
 ## Requirements
 

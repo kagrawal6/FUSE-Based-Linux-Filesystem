@@ -2,6 +2,8 @@
 
 This document explains the FUSE-based RAID filesystem in depth: what it is, how it is structured on disk, how `mkfs` and `wfs` work together, which OS and storage concepts it uses, and how common file operations map onto those structures.
 
+**Section 3** is a visual walkthrough with screenshots, a real terminal session, and code snippets from the implementation.
+
 ---
 
 ## 1. What this project is
@@ -70,9 +72,212 @@ While mounted, changes are persisted through the mmap/`MAP_SHARED` mapping back 
 
 ---
 
-## 3. Core concepts used
+## 3. Walkthrough: what it looks like when you run it
 
-### 3.1 Block-based storage
+The screenshots and session log below were taken from a real Linux run of this repo (RAID 1, two 1MB disk images). Ordinary tools (`stat`, `mkdir`, `echo`, `cat`, `ls`, `tree`) talk to the kernel; FUSE forwards those calls into `wfs`.
+
+### 3.1 Build, format, and mount
+
+![Build, format, and mount](docs/images/demo-mount.png)
+
+```bash
+cd solution
+make
+./create_disk.sh
+./mkfs -r 1 -d disk1 -d disk2 -i 32 -b 200
+mkdir -p mnt
+./wfs disk1 disk2 -f -s mnt   # -f = foreground, -s = single-threaded
+```
+
+What each step does:
+
+| Step | Effect |
+|------|--------|
+| `make` | Builds `mkfs` and `wfs` |
+| `create_disk.sh` | Creates zeroed `disk1` / `disk2` (1MB each) |
+| `mkfs …` | Writes superblock, bitmaps, and root inode onto both images |
+| `./wfs … mnt` | Mounts the RAID set at `mnt/`; blocks until unmounted if `-f` is used |
+
+Layout offsets are computed in `mkfs` like this:
+
+```c
+/* Superblock and bitmaps are contiguous (no padding between them). */
+sb.i_bitmap_ptr = (off_t)sizeof(struct wfs_sb);
+sb.d_bitmap_ptr = sb.i_bitmap_ptr + (off_t)(sb.num_inodes / 8);
+/* Inodes and data blocks are block-aligned. */
+sb.i_blocks_ptr = (off_t)BKROUNDUP(sb.d_bitmap_ptr + sb.num_data_blocks / 8);
+sb.d_blocks_ptr = sb.i_blocks_ptr + (off_t)(sb.num_inodes * BLOCK_SIZE);
+```
+
+### 3.2 Using the mounted filesystem
+
+Open a **second** terminal while `wfs` is running (especially with `-f`). From the project’s `solution/` directory:
+
+![Creating dirs/files and reading them back](docs/images/demo-usage.png)
+
+Captured session (real output):
+
+```text
+$ stat mnt
+  File: mnt
+  Size: 0               Blocks: 0          IO Block: 4096   directory
+Device: 2eh/46d Inode: 1           Links: 2
+Access: (0755/drwxr-xr-x)  Uid: ( 1000/ student)   Gid: ( 1000/ student)
+
+$ mkdir mnt/docs
+$ mkdir mnt/docs/notes
+$ echo "hello from wfs" > mnt/docs/notes/hello.txt
+$ echo "RAID1 mirrored data" > mnt/docs/readme.txt
+
+$ cat mnt/docs/notes/hello.txt
+hello from wfs
+
+$ ls -la mnt/docs
+total 2
+drwxrwxr-x 3 student student 64 ... .
+drwxr-xr-x 3 student student 64 ... ..
+drwxrwxr-x 2 student student 32 ... notes
+-rw-rw-r-- 1 student student 20 ... readme.txt
+
+$ tree mnt
+mnt
+|-- docs
+|   |-- notes
+|   |   `-- hello.txt
+|   `-- readme.txt
+`-- small.bin
+
+2 directories, 3 files
+
+$ stat mnt/docs/notes/hello.txt
+  File: mnt/docs/notes/hello.txt
+  Size: 15              Blocks: 1          IO Block: 4096   regular file
+Access: (0664/-rw-rw-r--)  Uid: ( 1000/ student)   Gid: ( 1000/ student)
+```
+
+Those `stat` fields come straight from the on-disk inode via `wfs_getattr`:
+
+```c
+static int wfs_getattr(const char *path, struct stat *stbuf)
+{
+    memset(stbuf, 0, sizeof(*stbuf));
+    int inum = path_to_inode(path);
+    if (inum < 0) {
+        return -ENOENT;
+    }
+    struct wfs_inode *ino = inode_at(0, inum);
+    stbuf->st_uid = ino->uid;
+    stbuf->st_gid = ino->gid;
+    stbuf->st_atim.tv_sec = ino->atim;
+    stbuf->st_mtim.tv_sec = ino->mtim;
+    stbuf->st_mode = ino->mode;
+    stbuf->st_size = ino->size;
+    stbuf->st_nlink = (nlink_t)ino->nlinks;
+    return 0;
+}
+```
+
+FUSE dispatches into that (and the other ops) through the operations table:
+
+```c
+static struct fuse_operations ops = {
+    .getattr = wfs_getattr,
+    .mknod   = wfs_mknod,
+    .mkdir   = wfs_mkdir,
+    .unlink  = wfs_unlink,
+    .rmdir   = wfs_rmdir,
+    .read    = wfs_read,
+    .write   = wfs_write,
+    .readdir = wfs_readdir,
+};
+```
+
+### 3.3 Peeking at the raw disk image
+
+After `mkfs` (and later after creates/writes), the image is just a file—you can inspect it with `xxd`:
+
+![Inspecting on-disk superblock / allocations](docs/images/demo-ondisk.png)
+
+Real hex dump of the start of `disk1` after format (little-endian 32-bit groups):
+
+```text
+$ xxd -e -g 4 -l 80 disk1
+00000000: 00000020 00000000 000000e0 00000000  ................
+00000010: 00000140 00000000 00000144 00000000  @.......D.......
+00000020: 00000200 00000000 00004200 00000000  .........B......
+00000030: 00000001 00000002 ................  raid_mode=1, num_disks=2
+```
+
+Decoded (for `-i 32 -b 200` → 224 data blocks after rounding):
+
+| Field | Value (example) | Meaning |
+|-------|-----------------|---------|
+| `num_inodes` | 32 (`0x20`) | inode capacity |
+| `num_data_blocks` | 224 (`0xe0`) | data-block capacity |
+| `i_bitmap_ptr` | 320 (`0x140`) | right after extended superblock |
+| `d_bitmap_ptr` | 324 (`0x144`) | after 32/8 = 4-byte inode bitmap |
+| `i_blocks_ptr` | 512 (`0x200`) | inode table (block-aligned) |
+| `d_blocks_ptr` | 16896 (`0x4200`) | start of data region |
+| `raid_mode` | 1 | RAID 1 |
+| `num_disks` | 2 | mirrored pair |
+
+### 3.4 What happens under the hood for a write
+
+When you run `echo "hello from wfs" > mnt/docs/notes/hello.txt`, the path roughly becomes:
+
+```text
+echo  →  write(2)  →  VFS  →  FUSE  →  wfs_write()
+                                      ├─ path_to_inode("/docs/notes/hello.txt")
+                                      ├─ inode_get_block(..., create=1)
+                                      │    └─ allocate_data_block() + update bitmap
+                                      └─ write_data_block()   # RAID-aware
+```
+
+RAID-aware block I/O (simplified from `wfs.c`):
+
+```c
+static void write_data_block(size_t log_idx, const void *src)
+{
+    if (raid_mode == RAID_0) {
+        int d; off_t off;
+        map_data_block(log_idx, &d, &off);   /* disk = log_idx % num_disks */
+        memcpy(disk_at(d) + off, src, BLOCK_SIZE);
+        return;
+    }
+    /* RAID 1 / 1v: mirror to every disk */
+    for (int d = 0; d < num_disks; d++) {
+        memcpy(disk_at(d) + sb->d_blocks_ptr + (off_t)log_idx * BLOCK_SIZE,
+               src, BLOCK_SIZE);
+    }
+}
+```
+
+RAID 1v reads compare all copies and take a majority (tie → lowest disk index):
+
+```c
+/* RAID 1v: majority vote across disks; ties -> lowest index. */
+for (int d = 0; d < num_disks; d++) {
+    memcpy(copies[d], disk_at(d) + ... + log_idx * BLOCK_SIZE, BLOCK_SIZE);
+}
+/* pick copy with highest agreement count; first index wins ties */
+```
+
+### 3.5 Unmount
+
+```bash
+./umount.sh mnt
+# equivalent: fusermount -u mnt
+```
+
+After unmount, `mnt/` is an ordinary empty directory again, but `disk1` / `disk2` still hold the filesystem. Remounting with `./wfs disk1 disk2 -s mnt` restores the same tree (`docs/`, `hello.txt`, …).
+
+Also see the on-disk diagram: [`disk-layout.svg`](disk-layout.svg).
+
+---
+
+## 4. Core concepts used
+
+### 4.1 Block-based storage
 
 Everything is organized around a fixed **block size of 512 bytes**.
 
@@ -82,7 +287,7 @@ Everything is organized around a fixed **block size of 512 bytes**.
 
 This is the same abstraction disks and classic Unix filesystems have used for decades: the filesystem never thinks in “infinite byte arrays”; it thinks in numbered blocks plus a bit of bookkeeping.
 
-### 3.2 Superblock
+### 4.2 Superblock
 
 The **superblock** is the filesystem’s header. It lives at offset 0 of each disk image and answers:
 
@@ -92,7 +297,7 @@ The **superblock** is the filesystem’s header. It lives at offset 0 of each di
 
 Without a valid superblock, nothing else can be interpreted.
 
-### 3.3 Bitmaps (allocation maps)
+### 4.3 Bitmaps (allocation maps)
 
 Two bitmaps track free vs used resources:
 
@@ -103,7 +308,7 @@ Setting a bit means “allocated.” Clearing it means “free.” Allocation wa
 
 This is intentionally simple (linear scan). Real filesystems use freelists, buddy allocators, or B-trees; the interface—find free, mark used—is the same idea.
 
-### 3.4 Inodes
+### 4.4 Inodes
 
 An **inode** stores everything about a file or directory *except* its name:
 
@@ -118,7 +323,7 @@ Names live in **directory entries**, which map `name → inode number`. That sep
 
 **Important layout rule:** each inode occupies a **full 512-byte slot** on disk (block-aligned). Inodes are not packed tightly. The struct is smaller than 512 bytes; the rest of the block is unused padding.
 
-### 3.5 Direct and indirect block pointers
+### 4.5 Direct and indirect block pointers
 
 Each inode has `N_BLOCKS = 8` pointers:
 
@@ -138,7 +343,7 @@ Directories in this project **do not use the indirect pointer**—only the six d
 
 Empty pointers are represented as `-1` (direct slots) or `0` / `-1` in indirect tables after zero-fill.
 
-### 3.6 Directories as files
+### 4.6 Directories as files
 
 A directory is an inode with `S_IFDIR` set. Its “file contents” are an array of **directory entries**:
 
@@ -155,7 +360,7 @@ Blank entries (empty name) may appear inside the region covered by `inode.size`.
 
 Path resolution walks components: start at inode 0 (root), look up `"a"` in root, then `"b"` in that directory, and so on for path `/a/b`.
 
-### 3.7 FUSE and the VFS
+### 4.7 FUSE and the VFS
 
 Linux applications never talk to `wfs` directly. They use syscalls (`open`, `read`, `stat`, …). The kernel’s **VFS** dispatches those to the FUSE driver, which forwards them to userspace callbacks registered in `struct fuse_operations`.
 
@@ -172,7 +377,7 @@ FUSE options used here:
 
 `wfs` must **strip its own arguments** (disk image paths) before calling `fuse_main`, leaving only FUSE options and the mount point.
 
-### 3.8 RAID at the filesystem layer
+### 4.8 RAID at the filesystem layer
 
 RAID can live in hardware, in the block layer (`mdadm`), or inside the filesystem. This project puts RAID **inside the FS**:
 
@@ -193,7 +398,7 @@ Every write of a data block (and all metadata updates) is copied to **all** disk
 **RAID 1v — verified mirroring**  
 On-disk layout matches RAID 1. On read, `wfs` loads the block from every disk, counts how many disks share each distinct content, and returns the **majority** copy. On a tie, it prefers the **lowest disk index** after canonical reorder. That recovers from silent corruption on a minority of disks (as exercised by the corrupt-disk test).
 
-### 3.9 Identifying disks without relying on filenames
+### 4.9 Identifying disks without relying on filenames
 
 Mount order may differ from format order, and images may be renamed. Filenames are **not** identifiers.
 
@@ -204,7 +409,7 @@ At format time, `mkfs` assigns:
 
 At mount, `wfs` reads each image’s `this_disk_id`, matches it against `disk_ids[]`, and **reorders** the mmap’d disks into canonical index order. RAID 0 striping then stays consistent regardless of argv order.
 
-### 3.10 Memory-mapped I/O
+### 4.10 Memory-mapped I/O
 
 Recommended (and used here): `mmap` each image with `MAP_SHARED`. Then:
 
@@ -216,7 +421,7 @@ Updates are ordinary memory writes; the kernel writeback machinery persists them
 
 ---
 
-## 4. On-disk layout
+## 5. On-disk layout
 
 Each disk image has this layout (also diagrammed in `disk-layout.svg` / `.pdf`):
 
@@ -267,7 +472,7 @@ No data blocks are allocated until the first create under `/` needs a directory 
 
 ---
 
-## 5. How `mkfs` works
+## 6. How `mkfs` works
 
 **Input:** RAID mode, ≥2 disk paths, inode count, data-block count.
 
@@ -291,9 +496,9 @@ After `mkfs`, every disk is mountable as a member of the same RAID set. For RAID
 
 ---
 
-## 6. How `wfs` works at runtime
+## 7. How `wfs` works at runtime
 
-### 6.1 Startup
+### 7.1 Startup
 
 1. Parse argv: disk paths are the non-option arguments before FUSE flags (or all but the final mount point if there are no flags).
 2. Open each disk `O_RDWR` and `mmap` the whole file.
@@ -301,7 +506,7 @@ After `mkfs`, every disk is mountable as a member of the same RAID set. For RAID
 4. Remember `raid_mode` from the superblock.
 5. Call `fuse_main` with only FUSE argv + mount point.
 
-### 6.2 Helper layers inside `wfs`
+### 7.2 Helper layers inside `wfs`
 
 Rough layering in the implementation:
 
@@ -319,7 +524,7 @@ Bitmaps + inode table (allocate_inode, allocate_data_block, mirror metadata)
 mmap’d disk images
 ```
 
-### 6.3 FUSE operations and behavior
+### 7.3 FUSE operations and behavior
 
 | Callback | User-visible effect | Filesystem work |
 |----------|---------------------|-----------------|
@@ -332,7 +537,7 @@ mmap’d disk images
 | `write` | `echo >`, editors | Allocate blocks as needed; copy in; grow `size` |
 | `readdir` | `ls` | Emit `.`, `..`, and non-blank dentries |
 
-### 6.4 Error model
+### 7.4 Error model
 
 Callbacks return **negated errno** values, which FUSE turns into failed syscalls:
 
@@ -346,7 +551,7 @@ Other codes (`-ENOTDIR`, `-EISDIR`, `-ENOTEMPTY`, …) appear where Unix semanti
 
 ---
 
-## 7. End-to-end examples
+## 8. End-to-end examples
 
 ### Example A — create a file under RAID 1
 
@@ -375,7 +580,7 @@ Only the chosen disk’s data-bitmap bit is set. Reading concatenates stripes ba
 
 ---
 
-## 8. Design constraints and intentional simplifications
+## 9. Design constraints and intentional simplifications
 
 - **Fixed 512-byte blocks** — no multi-block clusters or extent trees  
 - **Single indirect level only** — no double/triple indirect  
@@ -390,7 +595,7 @@ These keep the project focused on the essentials: block maps, inodes, path walk,
 
 ---
 
-## 9. Repository map
+## 10. Repository map
 
 | Path | Contents |
 |------|----------|
@@ -402,11 +607,12 @@ These keep the project focused on the essentials: block maps, inodes, path walk,
 | `solution/umount.sh` | Wrapper around `fusermount -u` |
 | `tests/` | Spec-driven integration tests (`run-tests.sh`) |
 | `disk-layout.*` | Visual layout reference |
+| `docs/images/` | Demo screenshots used in this document |
 | `README.md` | Short overview + how to run |
 
 ---
 
-## 10. How to think about extending it
+## 11. How to think about extending it
 
 Natural extensions (not required here) that build on the same concepts:
 
@@ -421,7 +627,7 @@ Each extension still rests on the same foundation: **blocks, bitmaps, inodes, an
 
 ---
 
-## 11. References and further reading
+## 12. References and further reading
 
 - [FUSE API notes (Harvey Mudd)](https://www.cs.hmc.edu/~geoff/classes/hmc.cs135.201001/homework/fuse/fuse_doc.html)  
 - [FUSE tutorial (NMSU)](https://www.cs.nmsu.edu/~pfeiffer/fuse-tutorial/html/index.html)  
@@ -431,7 +637,7 @@ Each extension still rests on the same foundation: **blocks, bitmaps, inodes, an
 
 ---
 
-## 12. Summary
+## 13. Summary
 
 This project is a small but real filesystem stack:
 
